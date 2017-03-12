@@ -456,7 +456,7 @@ class Redis_Test extends TestSuite
         $this->assertTrue($this->redis->ttl('key') ===7);
         $this->assertTrue($this->redis->get('key') === 'val');
     }
-    
+
     public function testPSetEx() {
         $this->redis->del('key');
         $this->assertTrue($this->redis->psetex('key', 7 * 1000, 'val') === TRUE);
@@ -4972,6 +4972,22 @@ class Redis_Test extends TestSuite
             return $this->markTestSkipped();
         }
         session_write_close();
+        $this->assertTrue($this->redis->exists('PHPREDIS_SESSION:' . session_id()));
+    }
+
+    public function testSessionStrictMode()
+    {
+        $this->redis->del('PHPREDIS_SESSION:' . 'UserProvidedSessionId');
+        ini_set('session.use_strict_mode', '1');
+        ini_set('session.save_handler', 'redis');
+        ini_set('session.save_path', 'tcp://localhost:6379');
+        session_id('UserProvidedSessionId');
+        if (!@session_start()) {
+            return $this->markTestSkipped();
+        }
+        $this->assertTrue('UserProvidedSessionId' != session_id());
+        session_write_close();
+        $this->assertFalse($this->redis->exists('PHPREDIS_SESSION:' . 'UserProvidedSessionId'));
         $this->assertTrue($this->redis->exists('PHPREDIS_SESSION:' . session_id()));
     }
 

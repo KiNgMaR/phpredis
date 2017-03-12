@@ -520,5 +520,23 @@ class Redis_Cluster_Test extends Redis_Test {
         session_write_close();
         $this->assertTrue($this->redis->exists('PHPREDIS_CLUSTER_SESSION:' . session_id()));
     }
+
+    public function testSessionStrictMode()
+    {
+        $this->redis->del('PHPREDIS_CLUSTER_SESSION:' . 'UserProvidedSessionId');
+        ini_set('session.use_strict_mode', '1');
+        ini_set('session.save_handler', 'redis');
+        ini_set('session.save_path', implode('&', array_map(function ($seed) {
+            return 'seed[]=' . $seed;
+        }, self::$_arr_node_map)) . '&failover=error');
+        session_id('UserProvidedSessionId');
+        if (!@session_start()) {
+            return $this->markTestSkipped();
+        }
+        $this->assertTrue('UserProvidedSessionId' != session_id());
+        session_write_close();
+        $this->assertFalse($this->redis->exists('PHPREDIS_CLUSTER_SESSION:' . 'UserProvidedSessionId'));
+        $this->assertTrue($this->redis->exists('PHPREDIS_CLUSTER_SESSION:' . session_id()));
+    }
 }
 ?>
